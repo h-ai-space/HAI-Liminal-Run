@@ -1,0 +1,35 @@
+Copyright © 2026 Madalina Croitoru. All rights reserved.
+
+H/AI — Liminal Run and all associated content, including but not limited to:
+
+- source code,
+- game mechanics,
+- puzzles,
+- story elements,
+- dialogue,
+- visual designs,
+- characters,
+- environments,
+- artwork concepts,
+- music concepts,
+- and worldbuilding,
+
+are protected by copyright law and remain the exclusive intellectual property of Madalina Croitoru.
+
+Permission is granted solely to view and play the project for personal, non-commercial purposes.
+
+Without explicit prior written permission from the author, you may NOT:
+
+- copy,
+- modify,
+- adapt,
+- distribute,
+- sublicense,
+- publish,
+- commercialize,
+- create derivative works from,
+- or reuse any part of this project.
+
+No rights are granted by implication, estoppel, or otherwise.
+
+Unauthorized use of this project or its assets is strictly prohibited.
