@@ -1,13 +1,24 @@
 # H/AI — Liminal Run
 
-Prototype de jeu d’aventure/énigmes en HTML, CSS et JavaScript.
+Version visuelle corrigée.
 
-## Jouer
+## Lancer le jeu
 
-Ouvre `index.html` dans un navigateur.
+Ouvrir `index.html` dans un navigateur.
+
+## Contrôles
 
 - Flèches gauche/droite : bouger
 - Espace : interagir
-- Mauvaises réponses : corruption du monde
-- 3 mauvaises réponses contre le boss : reset du combat
 
+## GitHub Pages
+
+Mettre ces fichiers à la racine du repository :
+
+- `index.html`
+- `style.css`
+- `game.js`
+- dossier `assets`
+- `LICENSE.txt`
+
+Puis aller dans Settings → Pages → Deploy from branch → main → root.

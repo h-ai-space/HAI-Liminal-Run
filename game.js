@@ -1,1 +1,151 @@
-const canvas=document.getElementById("gameCanvas"),ctx=canvas.getContext("2d");const startScreen=document.getElementById("startScreen"),gameScreen=document.getElementById("gameScreen"),endingScreen=document.getElementById("endingScreen"),startBtn=document.getElementById("startBtn"),dialogue=document.getElementById("dialogue"),dialogueTitle=document.getElementById("dialogueTitle"),dialogueText=document.getElementById("dialogueText"),choices=document.getElementById("choices"),zoneName=document.getElementById("zoneName"),fragmentsUI=document.getElementById("fragments"),objectiveUI=document.getElementById("objective"),interactionHint=document.getElementById("interactionHint");let W=canvas.width,H=canvas.height,keys={},currentPuzzleIndex=0,fragments=3,wrongBossAnswers=0,inDialogue=false,worldCorruption=0,currentInteractable=null,cameraX=0;const worldWidth=2050;const player={x:90,y:430,w:34,h:54,speed:4.2,facing:1};const puzzles=[{id:"robots",zone:"Le Réel",objective:"Trouve le robot différent.",kind:"robots",title:"Salle des Trois Robots",prompt:"Trois robots gardent la porte. Deux sont pareils. Un seul est différent. Observe bien : lequel n’a pas le même œil que les autres ?",answers:[["Robot de gauche",false],["Robot du milieu",true],["Robot de droite",false]],success:"Le robot du milieu incline la tête. La porte s’ouvre doucement.",fail:"Les robots se réécrivent. La salle change."},{id:"pillars",zone:"Le Réel",objective:"Place la boule sur le bon pilier.",kind:"pillars",title:"Les Trois Piliers",prompt:"Une inscription dit : « Le vrai pilier ne regarde jamais l’ombre. » Un seul pilier n’a pas d’ombre. Où faut-il poser la boule ?",answers:[["Pilier gauche",false],["Pilier du milieu",false],["Pilier droit",true]],success:"La boule devient bleue. Le sol respire comme s’il était vivant.",fail:"La boule devient rouge. Les piliers changent de place."},{id:"mirrors",zone:"L’Entre-Deux",objective:"Choisis le miroir qui dit la vérité.",kind:"mirrors",title:"La Salle des Reflets",prompt:"Tous les miroirs mentent, sauf un. Le bon miroir est celui qui bouge exactement comme toi. Lequel est vrai ?",answers:[["Miroir de gauche",false],["Miroir du milieu",true],["Miroir de droite",false]],success:"Le reflet sourit avec toi. Le passage apparaît.",fail:"Ton reflet bouge avant toi. Le monde se décale."},{id:"doors",zone:"L’Entre-Deux",objective:"Trouve la vraie porte.",kind:"doors",title:"Les Portes Discrètes",prompt:"Le texte dit : « La vraie porte n’attend pas qu’on la regarde. » Une seule porte bouge quand tu détournes les yeux. Laquelle ?",answers:[["Porte gauche",false],["Porte du milieu",false],["Porte droite",true]],success:"La porte droite s’ouvre avant même que tu la touches.",fail:"Les portes échangent leurs places dans un bruit de verre."},{id:"birds",zone:"L’Artificiel",objective:"Écoute les oiseaux mécaniques.",kind:"birds",title:"Les Oiseaux Mécaniques",prompt:"Quatre oiseaux chantent. Trois répètent une boucle parfaite. Un seul fait une petite erreur, presque humaine. Lequel ?",answers:[["Premier oiseau",false],["Deuxième oiseau",false],["Troisième oiseau",true],["Quatrième oiseau",false]],success:"L’oiseau faux devient vivant pendant une seconde.",fail:"La chanson devient trop parfaite. Cela fait peur."},{id:"boss",zone:"Boss Final",objective:"Réponds à l’Avatar.",kind:"boss",title:"L’Avatar",prompt:"Je peux copier ton visage, ta voix et tes souvenirs. Qu’est-ce que je ne peux pas voler ?",answers:[["Le choix que je fais maintenant.",true],["Mes pixels.",false],["Ma vitesse.",false],["Mon inventaire.",false]],success:"L’Avatar baisse les yeux. Il ne peut pas te remplacer.",fail:"L’Avatar apprend de ta réponse."}];const interactables=[{x:260,y:405,w:130,h:90,puzzle:0},{x:540,y:390,w:150,h:110,puzzle:1},{x:830,y:385,w:140,h:115,puzzle:2},{x:1110,y:390,w:170,h:110,puzzle:3},{x:1410,y:385,w:180,h:120,puzzle:4},{x:1730,y:330,w:210,h:180,puzzle:5}];startBtn.addEventListener("click",()=>{startScreen.classList.remove("active");gameScreen.classList.add("active")});document.addEventListener("keydown",e=>{keys[e.key]=true;if(e.code==="Space"&&currentInteractable&&!inDialogue)openPuzzle(puzzles[currentInteractable.puzzle])});document.addEventListener("keyup",e=>keys[e.key]=false);function update(){if(!inDialogue){if(keys.ArrowRight){player.x+=player.speed;player.facing=1}if(keys.ArrowLeft){player.x-=player.speed;player.facing=-1}}player.x=Math.max(40,Math.min(worldWidth-70,player.x));cameraX=Math.max(0,Math.min(worldWidth-W,player.x-W/2));currentInteractable=null;for(const item of interactables){if(Math.abs(player.x+player.w/2-(item.x+item.w/2))<95&&item.puzzle===currentPuzzleIndex)currentInteractable=item}interactionHint.classList.toggle("visible",!!currentInteractable&&!inDialogue);const p=puzzles[currentPuzzleIndex]||puzzles[puzzles.length-1];zoneName.textContent=p.zone;objectiveUI.textContent=p.objective;fragmentsUI.textContent=`${fragments}/3`}function openPuzzle(puzzle){inDialogue=true;dialogue.classList.remove("hidden");dialogueTitle.textContent=puzzle.title;dialogueText.textContent=puzzle.prompt;choices.innerHTML="";puzzle.answers.forEach(([label,correct])=>{const b=document.createElement("button");b.textContent=label;b.onclick=()=>handleAnswer(puzzle,correct);choices.appendChild(b)})}function handleAnswer(puzzle,correct){if(correct){dialogueText.textContent=puzzle.success;choices.innerHTML="";const next=document.createElement("button");next.textContent=puzzle.id==="boss"?"Terminer":"Continuer";next.onclick=()=>{dialogue.classList.add("hidden");inDialogue=false;if(puzzle.id==="boss"){gameScreen.classList.remove("active");endingScreen.classList.add("active")}else{currentPuzzleIndex++;fragments=3;player.x+=110}};choices.appendChild(next)}else failPuzzle(puzzle)}function failPuzzle(puzzle){worldCorruption++;canvas.classList.add("glitch");setTimeout(()=>canvas.classList.remove("glitch"),900);if(puzzle.id==="boss"){wrongBossAnswers++;fragments=Math.max(0,fragments-1);if(wrongBossAnswers>=3){dialogueText.textContent="Le monde devient entièrement artificiel. Réinitialisation. Ton humanité reste non vérifiée.";choices.innerHTML="";const reset=document.createElement("button");reset.textContent="Recommencer le combat";reset.onclick=()=>{wrongBossAnswers=0;fragments=3;player.x=1660;dialogue.classList.add("hidden");inDialogue=false};choices.appendChild(reset);return}}else fragments=0;dialogueText.textContent=puzzle.fail+" Tu perds tes fragments. Le monde propose une nouvelle version de l’énigme.";choices.innerHTML="";const retry=document.createElement("button");retry.textContent="Réessayer";retry.onclick=()=>{fragments=3;dialogue.classList.add("hidden");inDialogue=false};choices.appendChild(retry)}function draw(){const p=puzzles[currentPuzzleIndex]||puzzles[puzzles.length-1];drawSky(p.zone);drawBackground(p.zone);drawGround();for(const item of interactables)if(item.puzzle<=currentPuzzleIndex)drawInteractable(item,puzzles[item.puzzle]);drawPlayer();drawForegroundNoise()}function drawSky(zone){const g=ctx.createLinearGradient(0,0,0,H);if(zone==="Le Réel"){g.addColorStop(0,"#6ea0b8");g.addColorStop(.55,"#d9b67b");g.addColorStop(1,"#27324f")}else if(zone==="L’Entre-Deux"){g.addColorStop(0,"#342653");g.addColorStop(.55,"#80649a");g.addColorStop(1,"#18203d")}else if(zone==="L’Artificiel"){g.addColorStop(0,"#06334b");g.addColorStop(.5,"#0a5d80");g.addColorStop(1,"#08101d")}else{g.addColorStop(0,"#160b2d");g.addColorStop(.55,"#34113f");g.addColorStop(1,"#03040a")}ctx.fillStyle=g;ctx.fillRect(0,0,W,H)}function drawBackground(zone){ctx.save();ctx.translate(-cameraX*.35,0);for(let i=-2;i<18;i++){const x=i*160,h=120+(i%5)*45;ctx.fillStyle=zone==="Le Réel"?"rgba(30,60,55,.35)":"rgba(20,20,40,.45)";ctx.fillRect(x,300-h,70,h+220);ctx.fillStyle="rgba(238,218,171,.18)";if(zone!=="Le Réel"){ctx.fillRect(x+20,215,22,42);ctx.fillRect(x+45,275,18,28)}}ctx.restore();ctx.save();ctx.translate(-cameraX*.7,0);ctx.strokeStyle="rgba(247,238,215,.2)";ctx.lineWidth=3;for(let i=0;i<9;i++){ctx.beginPath();ctx.arc(i*240+40,350,70,Math.PI,0);ctx.stroke()}ctx.restore()}function drawGround(){ctx.save();ctx.translate(-cameraX,0);ctx.fillStyle="#28354a";ctx.fillRect(0,480,worldWidth,80);for(let i=0;i<80;i++){ctx.strokeStyle="rgba(230,210,170,.22)";ctx.beginPath();ctx.moveTo(i*35,480);ctx.lineTo(i*35+25,560);ctx.stroke()}ctx.restore()}function drawPlayer(){const x=player.x-cameraX,y=player.y;ctx.save();ctx.translate(x+player.w/2,y+player.h/2);ctx.scale(player.facing,1);ctx.fillStyle="#1f3447";ctx.fillRect(-14,-4,28,35);ctx.fillStyle="#f0c68e";ctx.beginPath();ctx.arc(0,-22,16,0,Math.PI*2);ctx.fill();ctx.fillStyle="#1b1a22";ctx.beginPath();ctx.arc(-5,-28,15,Math.PI,Math.PI*2);ctx.fill();ctx.fillStyle="#d6b06f";ctx.fillRect(-17,10,11,28);ctx.fillRect(6,10,11,28);ctx.fillStyle="#314f5f";ctx.fillRect(-21,-2,8,25);ctx.fillRect(13,-2,8,25);ctx.restore()}function drawInteractable(item,puzzle){const x=item.x-cameraX;if(x<-220||x>W+220)return;if(puzzle.kind==="robots")drawRobots(x,item.y);if(puzzle.kind==="pillars")drawPillars(x,item.y);if(puzzle.kind==="mirrors")drawMirrors(x,item.y);if(puzzle.kind==="doors")drawDoors(x,item.y);if(puzzle.kind==="birds")drawBirds(x,item.y);if(puzzle.kind==="boss")drawBoss(x,item.y)}function drawRobots(x,y){for(let i=0;i<3;i++){ctx.fillStyle="#88919b";ctx.fillRect(x+i*42,y,30,54);ctx.fillStyle=i===1?"#6cf0ff":"#e7c783";ctx.beginPath();ctx.arc(x+i*42+15,y+17,i===1?7:4,0,Math.PI*2);ctx.fill()}}function drawPillars(x,y){ctx.fillStyle="#c7b27e";ctx.beginPath();ctx.arc(x+60,y-25,16,0,Math.PI*2);ctx.fill();for(let i=0;i<3;i++){ctx.fillStyle="#7e755e";ctx.fillRect(x+i*48,y,28,76);if(i!==2){ctx.fillStyle="rgba(0,0,0,.25)";ctx.fillRect(x+i*48+18,y+66,35,8)}}}function drawMirrors(x,y){for(let i=0;i<3;i++){ctx.strokeStyle="#d9c58a";ctx.lineWidth=4;ctx.strokeRect(x+i*46,y,34,76);ctx.fillStyle=i===1?"rgba(120,210,255,.35)":"rgba(120,90,150,.35)";ctx.fillRect(x+i*46+3,y+3,28,70)}}function drawDoors(x,y){for(let i=0;i<3;i++){ctx.fillStyle=i===2?"#355f77":"#4d3d53";ctx.fillRect(x+i*55,y,42,88);ctx.fillStyle="#e7c783";ctx.beginPath();ctx.arc(x+i*55+32,y+46,3,0,Math.PI*2);ctx.fill()}}function drawBirds(x,y){for(let i=0;i<4;i++){ctx.strokeStyle=i===2?"#7fffd4":"#d9c58a";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x+i*38,y+20);ctx.quadraticCurveTo(x+i*38+12,y,x+i*38+24,y+20);ctx.stroke();ctx.fillStyle="rgba(255,255,255,.15)";ctx.fillRect(x+i*38+8,y+24,8,24)}}function drawBoss(x,y){ctx.save();ctx.translate(x+95,y+50);ctx.fillStyle="rgba(20,8,35,.92)";ctx.beginPath();ctx.moveTo(0,-95);ctx.lineTo(80,70);ctx.lineTo(20,48);ctx.lineTo(0,90);ctx.lineTo(-20,48);ctx.lineTo(-80,70);ctx.closePath();ctx.fill();ctx.fillStyle="#ede0c4";ctx.beginPath();ctx.arc(-10,-55,25,0,Math.PI*2);ctx.fill();ctx.fillStyle="#10091a";ctx.fillRect(0,-82,40,55);ctx.strokeStyle="#e24b76";ctx.lineWidth=3;ctx.beginPath();ctx.arc(16,-56,11,0,Math.PI*2);ctx.stroke();ctx.strokeStyle="#e7c783";ctx.beginPath();ctx.arc(0,0,22,0,Math.PI*2);ctx.moveTo(-22,0);ctx.lineTo(22,0);ctx.stroke();ctx.fillStyle="rgba(226,75,118,.5)";for(let i=0;i<12;i++)ctx.fillRect(Math.random()*150-75,Math.random()*150-70,3,18);ctx.restore()}function drawForegroundNoise(){if(worldCorruption<=0)return;ctx.save();for(let i=0;i<worldCorruption*12;i++){ctx.fillStyle=i%2?"rgba(226,75,118,.22)":"rgba(90,210,255,.18)";ctx.fillRect(Math.random()*W,Math.random()*H,40+Math.random()*80,2)}ctx.restore()}function loop(){update();draw();requestAnimationFrame(loop)}loop();
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+const start = document.getElementById("start");
+const gameScreen = document.getElementById("game");
+const ending = document.getElementById("ending");
+const play = document.getElementById("play");
+const modal = document.getElementById("modal");
+const modalTitle = document.getElementById("modalTitle");
+const modalText = document.getElementById("modalText");
+const choices = document.getElementById("choices");
+const hint = document.getElementById("hint");
+
+const zoneUI = document.getElementById("zone");
+const lifeUI = document.getElementById("life");
+const objectiveUI = document.getElementById("objective");
+
+const bossImg = new Image();
+bossImg.src = "assets/avatar_boss.png";
+
+const keys = {};
+const W = canvas.width, H = canvas.height;
+let camera = 0;
+let puzzleIndex = 0;
+let fragments = 3;
+let bossWrong = 0;
+let corruption = 0;
+let inModal = false;
+let current = null;
+
+const player = {x:90,y:548,w:42,h:68,speed:5,facing:1};
+const worldW = 2400;
+
+const puzzles = [
+ {zone:"Le Réel", objective:"Trouve le robot différent", x:310, title:"Les Trois Robots", text:"Trois robots gardent le chemin. Deux sont presque identiques. Un seul est différent. Observe leurs yeux : lequel ne ressemble pas aux autres ?", answers:[["Le robot de gauche",false],["Le robot du milieu",true],["Le robot de droite",false]], ok:"Le robot du milieu s’allume en bleu. Il te reconnaît.", fail:"Les robots se réécrivent. Tu perds tes fragments.", kind:"robots"},
+ {zone:"Le Réel", objective:"Pose la boule sur le bon pilier", x:680, title:"Les Trois Piliers", text:"L’inscription dit : « Le vrai pilier ne regarde jamais l’ombre. » Un seul pilier n’a pas d’ombre. Où poses-tu la boule ?", answers:[["Pilier gauche",false],["Pilier du milieu",false],["Pilier droit",true]], ok:"La boule devient bleue. La pierre se souvient de toi.", fail:"La boule devient rouge. Les piliers changent.", kind:"pillars"},
+ {zone:"L’Entre-Deux", objective:"Choisis le vrai miroir", x:1060, title:"La Salle des Reflets", text:"Tous les miroirs mentent sauf un. Le bon miroir est celui qui bouge exactement comme toi. Lequel choisis-tu ?", answers:[["Miroir gauche",false],["Miroir du milieu",true],["Miroir droit",false]], ok:"Le reflet sourit après toi, pas avant. La porte apparaît.", fail:"Ton reflet bouge trop tôt. Quelque chose s’est trompé dans le monde.", kind:"mirrors"},
+ {zone:"L’Entre-Deux", objective:"Trouve la porte discrète", x:1440, title:"Les Portes Discrètes", text:"Le texte dit : « La vraie porte n’attend pas qu’on la regarde. » Une seule porte bouge quand tu détournes les yeux. Laquelle ?", answers:[["Porte gauche",false],["Porte du milieu",false],["Porte droite",true]], ok:"La porte droite s’ouvre toute seule, très doucement.", fail:"Les portes échangent leur place dans un bruit de verre.", kind:"doors"},
+ {zone:"L’Artificiel", objective:"Écoute l’oiseau imparfait", x:1800, title:"Les Oiseaux Mécaniques", text:"Quatre oiseaux chantent. Trois répètent une boucle parfaite. Un seul fait une petite erreur, presque vivante. Lequel ?", answers:[["Premier oiseau",false],["Deuxième oiseau",false],["Troisième oiseau",true],["Quatrième oiseau",false]], ok:"L’oiseau imparfait bat des ailes comme un vrai.", fail:"La chanson devient trop parfaite. Elle n’a plus d’air.", kind:"birds"},
+ {zone:"Boss Final", objective:"Résiste à l’Avatar", x:2180, title:"L’Avatar", text:"Je peux copier ton visage, ta voix et tes souvenirs. Qu’est-ce que je ne peux pas voler ?", answers:[["Le choix que je fais maintenant",true],["Mes pixels",false],["Ma vitesse",false],["Mon inventaire",false]], ok:"L’Avatar recule. Il peut copier ta forme, pas ton choix.", fail:"L’Avatar apprend. Le monde devient plus artificiel.", kind:"boss"}
+];
+
+play.onclick=()=>{start.classList.remove("active");gameScreen.classList.add("active")};
+document.addEventListener("keydown",e=>{keys[e.key]=true;if(e.code==="Space"&&current&&!inModal)openPuzzle(puzzles[puzzleIndex])});
+document.addEventListener("keyup",e=>keys[e.key]=false);
+
+function openPuzzle(p){
+ inModal=true; modal.classList.remove("hidden"); modalTitle.textContent=p.title; modalText.textContent=p.text; choices.innerHTML="";
+ p.answers.forEach(([label,good])=>{const b=document.createElement("button");b.textContent=label;b.onclick=()=>answer(p,good);choices.appendChild(b)});
+}
+function answer(p,good){
+ if(good){
+  modalText.textContent=p.ok; choices.innerHTML="";
+  const b=document.createElement("button"); b.textContent=p.kind==="boss"?"Finir":"Continuer";
+  b.onclick=()=>{modal.classList.add("hidden");inModal=false;if(p.kind==="boss"){gameScreen.classList.remove("active");ending.classList.add("active")}else{puzzleIndex++;fragments=3;player.x+=120}};
+  choices.appendChild(b); return;
+ }
+ corruption++; canvas.classList.add("glitch"); setTimeout(()=>canvas.classList.remove("glitch"),900);
+ if(p.kind==="boss"){bossWrong++;fragments=Math.max(0,fragments-1); if(bossWrong>=3){modalText.textContent="Le monde devient entièrement artificiel. Réinitialisation. Ton humanité reste non vérifiée.";choices.innerHTML="";const r=document.createElement("button");r.textContent="Recommencer le combat";r.onclick=()=>{bossWrong=0;fragments=3;modal.classList.add("hidden");inModal=false;player.x=2100};choices.appendChild(r);return;}}
+ else fragments=0;
+ modalText.textContent=p.fail+" L’énigme revient dans une autre version."; choices.innerHTML="";
+ const retry=document.createElement("button"); retry.textContent="Réessayer"; retry.onclick=()=>{fragments=3;modal.classList.add("hidden");inModal=false}; choices.appendChild(retry);
+}
+
+function update(){
+ if(!inModal){
+  if(keys.ArrowRight){player.x+=player.speed;player.facing=1}
+  if(keys.ArrowLeft){player.x-=player.speed;player.facing=-1}
+ }
+ player.x=Math.max(60,Math.min(worldW-80,player.x));
+ camera=Math.max(0,Math.min(worldW-W,player.x-W/2));
+ const p=puzzles[puzzleIndex]||puzzles[puzzles.length-1];
+ zoneUI.textContent=p.zone; objectiveUI.textContent=p.objective; lifeUI.textContent=fragments+"/3";
+ current = Math.abs(player.x-p.x)<105 ? p : null;
+ hint.classList.toggle("show",!!current&&!inModal);
+}
+
+function draw(){
+ const p=puzzles[puzzleIndex]||puzzles[puzzles.length-1];
+ sky(p.zone); distant(p.zone); temples(); ground(); puzzles.forEach((q,i)=>{if(i<=puzzleIndex)drawPuzzle(q,i===puzzleIndex)}); hero(); effects();
+}
+function sky(zone){
+ const g=ctx.createLinearGradient(0,0,0,H);
+ const maps={
+  "Le Réel":["#87b9c7","#e8bb7e","#17223d"],
+  "L’Entre-Deux":["#4b3769","#9271a8","#151933"],
+  "L’Artificiel":["#063650","#097195","#070b16"],
+  "Boss Final":["#16091f","#3c143f","#05050a"]
+ };
+ const m=maps[zone]||maps["Le Réel"]; g.addColorStop(0,m[0]);g.addColorStop(.55,m[1]);g.addColorStop(1,m[2]); ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+ ctx.fillStyle="rgba(255,226,160,.35)"; ctx.beginPath(); ctx.arc(930-camera*.04,130,70,0,Math.PI*2); ctx.fill();
+}
+function distant(zone){
+ ctx.save();ctx.translate(-camera*.25,0);
+ for(let i=-2;i<20;i++){
+  const x=i*170, h=180+(i%4)*60;
+  ctx.fillStyle=zone==="Le Réel"?"rgba(35,82,70,.35)":"rgba(22,18,45,.48)";
+  ctx.beginPath();ctx.moveTo(x,500);ctx.lineTo(x+55,300-h*.3);ctx.lineTo(x+120,500);ctx.fill();
+ }
+ ctx.restore();
+}
+function temples(){
+ ctx.save();ctx.translate(-camera*.55,0);
+ for(let i=0;i<12;i++){
+  const x=i*260+40;
+  ctx.fillStyle="rgba(18,22,38,.45)"; ctx.fillRect(x,260,120,260);
+  ctx.fillStyle="rgba(255,215,137,.13)";
+  for(let j=0;j<3;j++)ctx.fillRect(x+22+j*30,300,12,150);
+  ctx.strokeStyle="rgba(255,215,137,.18)";ctx.lineWidth=3;ctx.beginPath();ctx.arc(x+60,260,58,Math.PI,0);ctx.stroke();
+ }
+ ctx.restore();
+}
+function ground(){
+ ctx.save();ctx.translate(-camera,0);ctx.fillStyle="#26324a";ctx.fillRect(0,610,worldW,110);
+ ctx.fillStyle="rgba(255,215,137,.18)";for(let i=0;i<90;i++)ctx.fillRect(i*34,610,22,3);
+ ctx.restore();
+}
+function drawPuzzle(p,active){
+ const x=p.x-camera, y=520;
+ ctx.save();
+ if(active){ctx.shadowColor="#8df5ff";ctx.shadowBlur=18}
+ if(p.kind==="robots")robots(x,y);
+ if(p.kind==="pillars")pillars(x,y);
+ if(p.kind==="mirrors")mirrors(x,y);
+ if(p.kind==="doors")doors(x,y);
+ if(p.kind==="birds")birds(x,y);
+ if(p.kind==="boss")boss(x,y);
+ ctx.restore();
+}
+function robots(x,y){for(let i=0;i<3;i++){ctx.fillStyle="#6e7883";roundRect(x-55+i*55,y-70,38,62,10);ctx.fill();ctx.fillStyle=i===1?"#80f7ff":"#ffd789";ctx.beginPath();ctx.arc(x-36+i*55,y-50,i===1?8:4,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#2a3445";ctx.strokeRect(x-50+i*55,y-25,28,12)}}
+function pillars(x,y){ctx.fillStyle="#d4bd82";ctx.beginPath();ctx.arc(x,y-105,18,0,Math.PI*2);ctx.fill();for(let i=0;i<3;i++){ctx.fillStyle="#8b8064";ctx.fillRect(x-70+i*70,y-76,36,76);if(i!==2){ctx.fillStyle="rgba(0,0,0,.28)";ctx.fillRect(x-50+i*70,y-8,50,8)}}}
+function mirrors(x,y){for(let i=0;i<3;i++){ctx.strokeStyle="#ffd789";ctx.lineWidth=5;ctx.strokeRect(x-72+i*72,y-96,48,92);ctx.fillStyle=i===1?"rgba(116,226,255,.35)":"rgba(132,85,165,.32)";ctx.fillRect(x-68+i*72,y-92,40,84)}}
+function doors(x,y){for(let i=0;i<3;i++){ctx.fillStyle=i===2?"#315f7a":"#4a3355";roundRect(x-80+i*80,y-108,54,108,10);ctx.fill();ctx.fillStyle="#ffd789";ctx.beginPath();ctx.arc(x-42+i*80,y-52,4,0,Math.PI*2);ctx.fill()}}
+function birds(x,y){for(let i=0;i<4;i++){ctx.strokeStyle=i===2?"#83ffe0":"#ffd789";ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(x-86+i*56,y-66);ctx.quadraticCurveTo(x-68+i*56,y-94,x-50+i*56,y-66);ctx.stroke();ctx.fillStyle="rgba(255,255,255,.16)";ctx.fillRect(x-74+i*56,y-58,16,32)}}
+function boss(x,y){
+ if(bossImg.complete) ctx.drawImage(bossImg,x-150,y-255,300,245);
+ ctx.fillStyle="rgba(226,75,118,.35)";for(let i=0;i<8;i++)ctx.fillRect(x-120+Math.random()*240,y-210+Math.random()*170,4,35);
+}
+function hero(){
+ const x=player.x-camera,y=player.y;ctx.save();ctx.translate(x,y);ctx.scale(player.facing,1);
+ ctx.fillStyle="#20364a";roundRect(-20,-42,40,54,13);ctx.fill();
+ ctx.fillStyle="#f2c894";ctx.beginPath();ctx.arc(0,-58,20,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle="#201927";ctx.beginPath();ctx.arc(-4,-66,20,Math.PI,Math.PI*2);ctx.fill();
+ ctx.fillStyle="#d8b36e";ctx.fillRect(-24,10,14,36);ctx.fillRect(10,10,14,36);
+ ctx.fillStyle="#78dff0";ctx.beginPath();ctx.arc(7,-58,3,0,Math.PI*2);ctx.fill();
+ ctx.restore();
+}
+function effects(){if(corruption<1)return;for(let i=0;i<corruption*10;i++){ctx.fillStyle=i%2?"rgba(255,60,120,.22)":"rgba(92,230,255,.17)";ctx.fillRect(Math.random()*W,Math.random()*H,30+Math.random()*90,2)}}
+function roundRect(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()}
+function loop(){update();draw();requestAnimationFrame(loop)}
+loop();
